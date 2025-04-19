@@ -1095,15 +1095,14 @@ class Osintgram:
         self.jsonDump = flag
 
     def login(self, sessionid):
-        self.api = AppClient(auto_patch=True, authenticate=False)
-        self.api._session.cookies.set('sessionid', sessionid, domain='.instagram.com')
-
-        # Validate session and set username
-        user_info = self.api.current_user()
-        self.api.username = user_info['user']['username']
-        self.api.authenticated_user_id = user_info['user']['pk']
-
-        pc.printout(f"[+] Logged in as {self.api.username}\n", pc.GREEN)
+        try:
+            self.api = AppClient(auto_patch=True, authenticate=False)
+            self.api._session.cookies.set('sessionid', sessionid, domain='.instagram.com')
+            # Validate session and set username
+            user_info = self.api.current_user()
+            self.api.username = user_info['user']['username']
+            self.api.authenticated_user_id = user_info['user']['pk']
+            pc.printout(f"[+] Logged in as {self.api.username}\n", pc.GREEN)
         except Exception as e:
             pc.printout("[-] Failed to login using session ID.\n", pc.RED)
             print(e)
