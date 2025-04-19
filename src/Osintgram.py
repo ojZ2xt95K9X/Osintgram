@@ -37,13 +37,12 @@ class Osintgram:
 
     def __init__(self, target, is_file, is_json, is_cli, output_dir, clear_cookies):
         self.output_dir = output_dir or self.output_dir        
-        u = config.getUsername()
-        p = config.getPassword()
+        sessionid = config.getSessionID()
         self.clear_cookies(clear_cookies)
         self.cli_mode = is_cli
         if not is_cli:
           print("\nAttempt to login...")
-        self.login(u, p)
+        self.login(sessionid)
         self.setTarget(target)
         self.writeFile = is_file
         self.jsonDump = is_json
@@ -1095,35 +1094,51 @@ class Osintgram:
 
         self.jsonDump = flag
 
-    def login(self, u, p):
-        try:
-            settings_file = "config/settings.json"
-            if not os.path.isfile(settings_file):
+    def login(self, sessionid):
+        self.api = AppClient(auto_patch=True, authenticate=False)
+        self.api._session.cookies.set('sessionid', sessionid, domain='.instagram.com')
+
+        # Validate session and set username
+        user_info = self.api.current_user()
+        self.api.username = user_info['user']['username']
+        self.api.authenticated_user_id = user_info['user']['pk']
+
+        pc.printout(f"[+] Logged in as {self.api.username}\n", pc.GREEN)
+        except Exception as e:
+            pc.printout("[-] Failed to login using session ID.\n", pc.RED)
+            print(e)
+            sys.exit(1)
+        
+
+        
+        #try:
+            #settings_file = "config/settings.json"
+            #if not os.path.isfile(settings_file):
                 # settings file does not exist
-                print(f'Unable to find file: {settings_file!s}')
+                #print(f'Unable to find file: {settings_file!s}')
 
                 # login new
-                self.api = AppClient(auto_patch=True, authenticate=True, username=u, password=p,
-                                     on_login=lambda x: self.onlogin_callback(x, settings_file))
+                #self.api = AppClient(auto_patch=True, authenticate=True, username=u, password=p,
+                                     #on_login=lambda x: self.onlogin_callback(x, settings_file))
 
-            else:
-                with open(settings_file) as file_data:
-                    cached_settings = json.load(file_data, object_hook=self.from_json)
+            #else:
+                #with open(settings_file) as file_data:
+                    #cached_settings = json.load(file_data, object_hook=self.from_json)
                 # print('Reusing settings: {0!s}'.format(settings_file))
 
                 # reuse auth settings
-                self.api = AppClient(
-                    username=u, password=p,
-                    settings=cached_settings,
-                    on_login=lambda x: self.onlogin_callback(x, settings_file))
+                #self.api = AppClient(
+                    #username=u, password=p,
+                    #settings=cached_settings,
+                    #on_login=lambda x: self.onlogin_callback(x, settings_file))
 
-        except (ClientCookieExpiredError, ClientLoginRequiredError) as e:
-            print(f'ClientCookieExpiredError/ClientLoginRequiredError: {e!s}')
+        #except (ClientCookieExpiredError, ClientLoginRequiredError) as e:
+            #print(f'ClientCookieExpiredError/ClientLoginRequiredError: {e!s}')
 
             # Login expired
             # Do relogin but use default ua, keys and such
-            self.api = AppClient(auto_patch=True, authenticate=True, username=u, password=p,
-                                 on_login=lambda x: self.onlogin_callback(x, settings_file))
+            #self.api = AppClient(auto_patch=True, authenticate=True, username=u, password=p,
+            #                     on_login=lambda x: self.onlogin_callback(x, settings_file))
 
         except ClientError as e:
             pc.printout('ClientError {0!s} (Code: {1:d}, Response: {2!s})'.format(e.msg, e.code, e.error_response), pc.RED)
